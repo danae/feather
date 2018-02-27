@@ -1,0 +1,24 @@
+{
+  "name": "dengsn/feather",
+  "description": "Simple page backend for Twig templates",
+  "authors": [
+    {
+      "name": "dengsn",
+      "email": "info@dengsn.com"
+    }
+  ],
+  "license": "GPL-3.0+",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "^7.0",
+    "twig/twig": "^2.0",
+    "symfony/http-kernel": "^3.4",
+    "symfony/routing": "^3.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "Feather\\": "src/"
+    }
+  }
+}
