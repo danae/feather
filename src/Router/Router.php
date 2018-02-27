@@ -25,9 +25,11 @@ class Router
   }
   
   // Add a route
-  public function addRoute(string $path, callable $fn)
+  public function addRoute(string $path, callable $fn, array $values = [])
   {
-    $this->routes->add($path,new Route($path,['_controller' => $fn]));
+    $values['_controller'] = $fn;
+    
+    $this->routes->add($path,new Route($path,$values));
   }
   
   // Remove a route

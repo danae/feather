@@ -43,7 +43,7 @@ class Feather
     $router = new Router();
     $router->addRoute('/{page}',function($page) use($variables) { 
       return $this->page($page,$variables); 
-    });   
+    },['page' => $this->default->name]);   
     
     // Create the request
     $request = Request::createFromGlobals();
@@ -62,7 +62,7 @@ class Feather
     try
     {
       // Get the page
-      $page = $this->pages[$name] ?? $this->default;
+      $page = $this->pages[$name];
       if (!$page)
         throw new NotFoundHttpException($name);
       
