@@ -158,6 +158,6 @@ class Feather implements HttpKernelInterface
   public static function rootPath()
   {
     $dir = dirname($_SERVER['PHP_SELF']);
-    return $dir . ($dir !== '/' ? '/' : '');
+    return ($dir !== '/' ? $dir : '');
   }
 }
