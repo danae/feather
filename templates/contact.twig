@@ -1,0 +1,97 @@
+{% extends "index.twig" %}
+
+{% block main %}
+  <h2>Get in touch</h2>
+
+  <p>For more information about me, my compositions or my projects you can fill in the following form. I will contact you as soon as possible!</p>
+
+  <div class="card">
+    <div class="card-body">
+      <div id="contactMessages"></div>
+      
+      <form id="contactForm" method="POST" action="{{ root }}/contactform.php">
+        <div class="form-group">
+          <label for="name">Your name</label>
+          <input required type="text" class="form-control" name="name" id="name" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label for="email">Your email address</label>
+          <input required type="email" class="form-control" name="email" id="email" placeholder="john.doe@example.com">
+        </div>
+        <div class="form-group">
+          <label for="message">Your message</label>
+          <textarea required class="form-control" name="message" id="message" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Prove that you're human</label>
+          <div class="g-recaptcha" data-sitekey="6Lcd21EUAAAAAChv_129fP8AL_wSZhbG5dUBCBMV"></div>
+        </div>
+        <div class="form-group mb-0">
+          <button type="submit" class="btn btn-outline-dark">Send message</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <p>Or you can use any of the following manners to follow my projects or send me a message:</p>
+
+  <div class="row">        
+    <div class="col-md-6">
+      <div class="media">
+        <div class="media-image">
+          <span class="fa-stack fa-2x">
+            <i class="fas fa-square fa-stack-2x"></i>
+            <i class="fab fa-spotify fa-inverse fa-stack-1x"></i>
+          </span>
+        </div>
+        <div class="media-body centered">
+          Spotify<br>
+          <a class="uppercase" href="{{ links.spotify }}">Purple Lum</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="media">
+        <div class="media-image">
+          <span class="fa-stack fa-2x">
+            <i class="fas fa-square fa-stack-2x"></i>
+            <i class="fab fa-soundcloud fa-inverse fa-stack-1x"></i>
+          </span>
+        </div>
+        <div class="media-body centered">
+          SoundCloud<br>
+          <a class="uppercase" href="{{ links.soundcloud }}">purplelum</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="media">
+        <div class="media-image">
+          <span class="fa-stack fa-2x">
+            <i class="fas fa-square fa-stack-2x"></i>
+            <i class="fab fa-github fa-inverse fa-stack-1x"></i>
+          </span>
+        </div>
+        <div class="media-body centered">
+          GitHub<br>
+          <a class="uppercase" href="{{ links.github }}">dengsn</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="media">
+        <div class="media-image">
+          <span class="fa-stack fa-2x">
+            <i class="fab fa-facebook-square fa-stack-2x"></i>
+          </span>
+        </div>
+        <div class="media-body centered">
+          Facebook<br>
+          <a class="uppercase" href="{{ links.facebook }}">purplelum</a>
+        </div>
+      </div>
+    </div>
+  {% endblock %}

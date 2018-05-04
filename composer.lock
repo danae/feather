@@ -4,8 +4,44 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "3f01764ac6b314ae698e16ab5acc07cf",
+    "content-hash": "9540d2a141b81687c43fc808178607ac",
     "packages": [
+        {
+            "name": "dengsn/database-wrapper",
+            "version": "0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/dengsn/database-wrapper.git",
+                "reference": "2439d3bf7d03d589cba37355be2fb5a0384ad09f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dengsn/database-wrapper/zipball/2439d3bf7d03d589cba37355be2fb5a0384ad09f",
+                "reference": "2439d3bf7d03d589cba37355be2fb5a0384ad09f",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Database\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0+"
+            ],
+            "authors": [
+                {
+                    "name": "dengsn",
+                    "email": "info@dengsn.com"
+                }
+            ],
+            "description": "Database wrapper for PDO",
+            "time": "2018-03-16T15:52:02+00:00"
+        },
         {
             "name": "psr/log",
             "version": "1.0.2",

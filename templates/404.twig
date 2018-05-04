@@ -1,0 +1,16 @@
+{% extends "index.twig" %}
+
+{% block nav %}
+{% endblock %}
+
+{% block main %}
+  <h1 class="text-center superbig">404.</h1>
+  
+  <p class="text-center lead">
+    We could not find the page you requested. Are you sure you typed the address correctly? If you bumped into a broken link, <a href="{{ links.email }}">please let us know</a>!
+  </p>
+  
+  <p class="text-center lead">
+    <b><a href="{{ root }} / {{ pages.compositions.name }}">Return to the home page</a></b>
+  </p>
+{% endblock %}

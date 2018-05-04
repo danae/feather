@@ -13,7 +13,8 @@
   "require": {
     "php": "^7.0",
     "twig/twig": "^2.0",
-    "symfony/http-kernel": "^3.4"
+    "symfony/http-kernel": "^3.4",
+    "dengsn/database-wrapper": "^0.1"
   },
   "autoload": {
     "psr-4": {

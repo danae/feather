@@ -1,13 +1,12 @@
 <?php
 namespace Feather;
 
+use Feather\Backend\Backend;
 use Feather\Backend\FilesystemBackend;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Twig_Environment;
-use Twig_Loader_Filesystem;
 
 class Feather implements HttpKernelInterface
 {
@@ -22,7 +21,7 @@ class Feather implements HttpKernelInterface
   public function __construct($backend_or_path)
   {
     // Initialize the backend
-    if (is_a($backend_or_path,Backend::class))
+    if (is_subclass_of($backend_or_path,Backend::class))
       $this->backend = $backend_or_path;
     elseif (is_string($backend_or_path))
       $this->backend = new FilesystemBackend($backend_or_path);
@@ -34,10 +33,6 @@ class Feather implements HttpKernelInterface
     $this->defaultPage = null;
     $this->notFoundPage = null;
     $this->errorPage = null;
-    
-    // Initialize Twig
-    $this->twigLoader = new Twig_Loader_Filesystem($path);
-    $this->twigEnvironment = new Twig_Environment($this->twigLoader,['autoescape' => false]);
   }
   
   // Return the backend
