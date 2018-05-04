@@ -1,29 +1,34 @@
 <?php
 namespace Feather;
 
-use Exception;
+use Feather\Backend\FilesystemBackend;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Twig_Environment;
-use Twig_Error_Loader;
 use Twig_Loader_Filesystem;
 
 class Feather implements HttpKernelInterface
 {
   // Variables
+  private $backend;
   private $pages;
   private $defaultPage;
   private $errorPage;
   private $notFoundPage;
   
-  private $twigLoader;
-  private $twigEnvironment;
-  
   // Constructor
-  public function __construct(string $path)
+  public function __construct($backend_or_path)
   {
+    // Initialize the backend
+    if (is_a($backend_or_path,Backend::class))
+      $this->backend = $backend_or_path;
+    elseif (is_string($backend_or_path))
+      $this->backend = new FilesystemBackend($backend_or_path);
+    else
+      throw new InvalidArgumentException("The backend must be an instance of " . Backend::class . " or a string to initialize a " . FilesystemBackend::class);
+    
     // Initialize variables
     $this->pages = [];
     $this->defaultPage = null;
@@ -35,7 +40,13 @@ class Feather implements HttpKernelInterface
     $this->twigEnvironment = new Twig_Environment($this->twigLoader,['autoescape' => false]);
   }
   
-    // Add a page
+  // Return the backend
+  public function getBackend()
+  {
+    return $this->backend;
+  }
+  
+  // Add a page
   public function addPage(Page $page, bool $default = false)
   {
     // Add the page
@@ -59,21 +70,33 @@ class Feather implements HttpKernelInterface
     return $this;
   }
   
-    // Set the 404 page
-  public function setNotFoundPage(Page $page)
+  // Return the not found page
+  public function getNotFoundPage()
+  {
+    return $this->notFoundPage;
+  }
+  
+  // Set the not found page
+  public function setNotFoundPage(Page $notFoundPage)
   {
     // Set the not found page
-    $this->notFoundPage = $page;
+    $this->notFoundPage = $notFoundPage;
     
     // Return self for chainability
     return $this;
   }
   
-  // Set the 500 page
-  public function setErrorPage(Page $page)
+  // Return the error page
+  public function getErrorPage()
+  {
+    return $this->errorPage;
+  }
+  
+  // Set the error page
+  public function setErrorPage(Page $errorPage)
   {
     // Set the error page
-    $this->errorPage = $page;
+    $this->errorPage = $errorPage;
     
     // Return self for chainability
     return $this;
@@ -82,21 +105,14 @@ class Feather implements HttpKernelInterface
   // Render a page
   private function render(Page $page, array $variables = [])
   {
-    try
-    {
-      // Create the Twig context variables
-      $variables = array_merge($variables,[
-        'pages' => $this->pages,
-        'page' => $page
-      ]);
-              
-      // Render the template
-      return new Response($this->twigEnvironment->render($page->template,$variables));
-    }
-    catch (Twig_Error_Loader $ex)
-    {
-      throw new NotFoundHttpException($ex->getMessage(),$ex);
-    }
+    // Add the page variables
+    $variables = array_merge($variables,[
+      'pages' => $this->pages,
+      'page' => $page
+    ]);
+    
+    // Render the page using the backend
+    return $this->backend->render($page,$variables);
   }
   
   // Handle a request
@@ -127,7 +143,7 @@ class Feather implements HttpKernelInterface
     catch (Exception $ex)
     {
       // Update the variables with the error message
-      $this->variables = array_merge($this->variables,[
+      $variables = array_merge($variables,[
         'error' => $ex->getMessage()
       ]);
       
