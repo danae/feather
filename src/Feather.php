@@ -1,137 +1,118 @@
 <?php
 namespace Feather;
 
+use ArrayAccess;
+use DI\ContainerBuilder;
 use Feather\Backend\Backend;
 use Feather\Backend\FilesystemBackend;
-use InvalidArgumentException;
+use Feather\Renderer\{RendererInterface, TwigRenderer};
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Twig_Environment;
+use Twig_Loader_Filesystem;
+use Twig_LoaderInterface;
 
-class Feather implements HttpKernelInterface
+use function DI\{autowire, get};
+
+class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
 {
   // Variables
-  private $backend;
-  private $pages;
-  private $defaultPage;
-  private $errorPage;
-  private $notFoundPage;
-  
+  private $container;
+
   // Constructor
-  public function __construct($backend_or_path)
+  public function __construct(array $values = [])
   {
-    // Initialize the backend
-    if (is_subclass_of($backend_or_path,Backend::class))
-      $this->backend = $backend_or_path;
-    elseif (is_string($backend_or_path))
-      $this->backend = new FilesystemBackend($backend_or_path);
-    else
-      throw new InvalidArgumentException("The backend must be an instance of " . Backend::class . " or a string to initialize a " . FilesystemBackend::class);
-    
-    // Initialize variables
-    $this->pages = [];
-    $this->defaultPage = null;
-    $this->notFoundPage = null;
-    $this->errorPage = null;
-  }
-  
-  // Return the backend
-  public function getBackend()
-  {
-    return $this->backend;
-  }
-  
-  // Add a page
-  public function addPage(Page $page, bool $default = false)
-  {
-    // Add the page
-    $this->pages[$page->name] = $page;
-    
-    // Set the page as default if set
-    if ($default)
-      $this->defaultPage = $page;
-    
-    // Return self for chainability
-    return $this;
-  }
-  
-  // Remove a page
-  public function removePage(string $pageName)
-  {
-    // Remove the page
-    unset($this->pages[$pageName]);
-    
-    // Return self for chainability
-    return $this;
-  }
-  
-  // Return the not found page
-  public function getNotFoundPage()
-  {
-    return $this->notFoundPage;
-  }
-  
-  // Set the not found page
-  public function setNotFoundPage(Page $notFoundPage)
-  {
-    // Set the not found page
-    $this->notFoundPage = $notFoundPage;
-    
-    // Return self for chainability
-    return $this;
-  }
-  
-  // Return the error page
-  public function getErrorPage()
-  {
-    return $this->errorPage;
-  }
-  
-  // Set the error page
-  public function setErrorPage(Page $errorPage)
-  {
-    // Set the error page
-    $this->errorPage = $errorPage;
-    
-    // Return self for chainability
-    return $this;
-  }
-  
-  // Render a page
-  private function render(Page $page, array $variables = [])
-  {
-    // Add the page variables
-    $variables = array_merge($variables,[
-      'pages' => $this->pages,
-      'page' => $page
+    // Create a container builder
+    $builder = new ContainerBuilder();
+
+    // Add default definitions
+    $builder->addDefinitions([
+      // Variables
+      'document_root' => function() {
+        $dir = dirname($_SERVER['PHP_SELF']);
+        return ($dir !== '/' ? $dir : '');
+      },
+
+      // Twig services
+      Twig_LoaderInterface::class => autowire(Twig_Loader_Filesystem::class)
+        ->constructor('templates'),
+      Twig_Environment::class => autowire(),
+
+      // Feather services
+      PageManager::class => $this,
+      RendererInterface::class => autowire(TwigRenderer::class),
+
+      // Convenient names to access the services
+      'pages' => get(PageManager::class),
+      'renderer' => get(RendererInterface::class),
+
+      // Context
+      'context' => []
     ]);
-    
-    // Render the page using the backend
-    return $this->backend->render($page,$variables);
+
+    // Add definitions from constructor
+    $builder->addDefinitions($values);
+
+    // Create the container
+    $this->container = $builder->build();
   }
-  
+
+  // Array access methods
+  public function offsetExists($offset)
+  {
+    return $this->container->has($offset);
+  }
+  public function offsetGet($offset)
+  {
+    return $this->container->get($offset);
+  }
+  public function offsetSet($offset, $value)
+  {
+    $this->container->set($offset, $value);
+  }
+  public function offsetUnset($offset)
+  {
+    throw new \LogicException(Container::class . " does not support unsetting keys");
+  }
+
+  // Render a page including the specified context
+  private function render(Page $page)
+  {
+    // Add the container to the context
+    $variables = array_merge($this['context'], [
+      'document_root' => $this['document_root'],
+      'pages' => $this['pages'],
+      'renderer' => $this['renderer']
+    ]);
+
+    // Render the page using the renderer
+    return $this[RendererInterface::class]->render($page, $variables);
+    //return $this->backend->render($page,$variables);
+  }
+
   // Handle a request
-  public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true, array $variables = [])
+  public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true): Response
   {
     try
     {
-      // Get the path of the page
-      $pageArray = array_filter(explode('/',$request->getPathInfo()));
-      $pageName = implode('.',$pageArray);
+      // Get the path of the requested page
+      $path = implode('/', array_filter(explode('/', $request->getPathInfo())));
 
       // Get the page or use the default page if the path is empty
-      $page = $pageName ? $this->pages[$pageName] : $this->defaultPage; 
-      if ($page === NULL)
-        throw new NotFoundHttpException($pageName);
-      
+      $page = $path ? $this->pages[$path] : $this->defaultPage;
+      if ($page === null)
+        throw new NotFoundHttpException($path);
+
       // Render the page
-      return $this->render($page,$variables);
+      return $this->render($page);
     }
     catch (NotFoundHttpException $ex)
     {
       // Check if we have a 404 page
       if ($this->notFoundPage !== null)
-        return $this->render($this->notFoundPage,$variables);
+        return $this->render($this->notFoundPage);
       else
         throw $ex;
     }
@@ -141,34 +122,24 @@ class Feather implements HttpKernelInterface
       $variables = array_merge($variables,[
         'error' => $ex->getMessage()
       ]);
-      
+
       // Check if we have a 500 page
       if ($this->errorPage !== null)
-        return $this->render($this->errorPage,$variables);
+        return $this->render($this->errorPage);
       else
         throw $ex;
     }
   }
-  
+
   // Run
-  public function run(array $variables = [])
+  public function run($request = null)
   {
-    // Set the default page if none given
-    if (!$this->defaultPage)
-      $this->defaultPage = array_values($this->pages)[0];
-    
     // Create the request
-    $request = Request::createFromGlobals();
-    
+    if ($request == null)
+      $request = Request::createFromGlobals();
+
     // Handle the request
-    $response = $this->handle($request,HttpKernelInterface::MASTER_REQUEST,true,$variables);
+    $response = $this->handle($request, HttpKernelInterface::MASTER_REQUEST, true);
     $response->send();
-  }
-  
-  // Return the root path
-  public static function rootPath()
-  {
-    $dir = dirname($_SERVER['PHP_SELF']);
-    return ($dir !== '/' ? $dir : '');
   }
 }

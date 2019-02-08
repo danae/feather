@@ -11,9 +11,11 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "php": "^7.0",
+    "php": "^7.2",
+    "php-di/php-di": "^6.0",
+    "pimple/pimple": "^3.0",
     "twig/twig": "^2.0",
-    "symfony/http-kernel": "^3.4",
+    "symfony/http-kernel": "^4.0",
     "dengsn/database-wrapper": "^0.1"
   },
   "autoload": {

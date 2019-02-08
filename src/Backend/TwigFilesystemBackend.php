@@ -5,32 +5,32 @@ use BadMethodCallException;
 use Feather\Page;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Twig_Environment;
-use Twig_Error_Loader;
-use Twig_Loader_Filesystem;
+use Twig\Environment;
+use Twig\Error\LoaderError;
+use Twig\Loader\FilesystemLoader;
 
-class FilesystemBackend implements Backend
+class TwigFilesystemBackend implements Backend
 {
   // Variables
   private $twigLoader;
   private $twigEnvironment;
-  
+
   // Constructor
   public function __construct(string $path)
   {
     // Initialize the loader
-    $this->twigLoader = new Twig_Loader_Filesystem($path);
-    
+    $this->twigLoader = new FilesystemLoader($path);
+
     // Initialize the environment
-    $this->twigEnvironment = new Twig_Environment($this->twigLoader,['autoescape' => false]);
+    $this->twigEnvironment = new Environment($this->twigLoader, ['autoescape' => false]);
   }
-  
+
   // Get the contents of a page
   public function getContents(Page $page): string
   {
     return $this->twigLoader->getSourceContext($page->template)->getCode();
   }
-  
+
   // Set the contents of a page
   public function setContents(Page $page, string $contents)
   {
@@ -44,7 +44,7 @@ class FilesystemBackend implements Backend
     {
       return new Response($this->twigEnvironment->render($page->template,$variables));
     }
-    catch (Twig_Error_Loader $ex)
+    catch (LoaderError $ex)
     {
       throw new NotFoundHttpException($ex->getMessage(),$ex);
     }

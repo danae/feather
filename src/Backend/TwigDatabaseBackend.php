@@ -9,18 +9,18 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Twig_Environment;
 use Twig_Error_Loader;
 
-class DatabaseBackend implements Backend
+class TwigDatabaseBackend implements Backend
 {
   // Variables
   private $twigLoader;
   private $twigEnvironment;
-  
+
   // Constructor
   public function __construct(Database $database, string $table = 'templates')
   {
     // Initialize the loader
     $this->twigLoader = new DatabaseTwigLoader($database,$table);
-    
+
     // Initialize the environment
     $this->twigEnvironment = new Twig_Environment($this->twigLoader,['autoescape' => false]);
   }
@@ -30,7 +30,7 @@ class DatabaseBackend implements Backend
   {
     if (($template = $this->twigLoader->getTemplate($page->template)) === null)
       throw new Twig_Error_Loader($page->template);
-    
+
     return $template['source'];
   }
 
@@ -42,10 +42,10 @@ class DatabaseBackend implements Backend
       'source' => $contents,
       'last_modified' => time()
     ];
-    
+
     $this->twigLoader->setTemplate($template);
   }
-  
+
   // Render a page
   public function render(Page $page, array $variables = array()): Response
   {
