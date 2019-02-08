@@ -37,8 +37,9 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
 
       // Twig services
       Twig_LoaderInterface::class => autowire(Twig_Loader_Filesystem::class)
-        ->constructor('templates'),
-      Twig_Environment::class => autowire(),
+        ->constructorParameter('paths', 'templates'),
+      Twig_Environment::class => autowire()
+        ->constructorParameter('options', ['autoescape' => false]),
 
       // Feather services
       PageManager::class => $this,

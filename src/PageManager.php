@@ -79,10 +79,10 @@ class PageManager implements IteratorAggregate
   // Return an iterator over the visible pages
   public function getIterator(): Traversable
   {
-    foreach ($this->pages as $page)
+    foreach ($this->pages as $path => $page)
     {
       if ($page->visible)
-        yield $page;
+        yield $path => $page;
     }
   }
 }
