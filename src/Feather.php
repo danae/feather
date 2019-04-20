@@ -10,9 +10,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Twig_Environment;
-use Twig_Loader_Filesystem;
-use Twig_LoaderInterface;
+use Twig\Environment as TwigEnvironment;
+use Twig\Loader\FilesystemLoader as TwigFilesystemLoader;
+use Twig\Loader\LoaderInterface as TwigLoaderInterface;
 
 use function DI\{autowire, get};
 
@@ -36,9 +36,9 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
       },
 
       // Twig services
-      Twig_LoaderInterface::class => autowire(Twig_Loader_Filesystem::class)
+      TwigLoaderInterface::class => autowire(TwigFilesystemLoader::class)
         ->constructorParameter('paths', 'templates'),
-      Twig_Environment::class => autowire()
+      TwigEnvironment::class => autowire()
         ->constructorParameter('options', ['autoescape' => false]),
 
       // Feather services
@@ -120,7 +120,7 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
     catch (Exception $ex)
     {
       // Update the variables with the error message
-      $variables = array_merge($variables,[
+      $variables = array_merge($this->variables, [
         'error' => $ex->getMessage()
       ]);
 
