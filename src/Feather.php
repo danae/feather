@@ -3,8 +3,6 @@ namespace Feather;
 
 use ArrayAccess;
 use DI\ContainerBuilder;
-use Feather\Backend\Backend;
-use Feather\Backend\FilesystemBackend;
 use Feather\Renderer\{RendererInterface, TwigRenderer};
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -84,13 +82,12 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
     // Add the container to the context
     $variables = array_merge($this['context'], [
       'document_root' => $this['document_root'],
-      'pages' => $this['pages'],
+      'pages' => $this['pages']->pages, // Use the array for convenient access
       'renderer' => $this['renderer']
     ]);
 
     // Render the page using the renderer
     return $this[RendererInterface::class]->render($page, $variables);
-    //return $this->backend->render($page,$variables);
   }
 
   // Handle a request
