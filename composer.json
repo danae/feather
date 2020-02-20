@@ -1,13 +1,20 @@
 {
   "name": "danae/feather",
   "description": "Simple HTTP kernel for Twig templates",
+  "type": "library",
+  "keywords": ["twig", "http", "kernel"],
   "license": "GPL-3.0+",
-  "minimum-stability": "dev",
-  "prefer-stable": true,
+  "authors": [
+    {
+      "name": "Danae Dekker",
+      "email": "info@danaedekker.com"
+    }
+  ],
   "require": {
     "php": "^7.2",
     "php-di/php-di": "^6.0",
-    "twig/twig": "^2.0",
+    "twig/twig": "^3.0",
+    "symfony/http-foundation": "^4.0",
     "symfony/http-kernel": "^4.0"
   },
   "autoload": {

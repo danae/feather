@@ -1,34 +1,21 @@
 <?php
 namespace Feather;
 
-use Feather\Renderer\RendererInterface;
-use Symfony\Component\HttpFoundation\Response;
-
 class Page
 {
   // Variables
   public $path;
-  public $options;
-
-  // Variables derived from options
-  public $visible;
-  public $default;
+  public $template;
   public $title;
+  public $visible;
 
-  // Constyructor
-  public function __construct(string $path, array $options = [])
+  // Constructor
+  public function __construct(array $options = [])
   {
-    $this->path = $path;
-    $this->options = $options;
-
+    $this->path = $options['path'];
+    $this->template = $options['template'] ?? implode('/', array_filter(explode('/', $this->path)));
+    $this->title = $options['title'] ?? ucwords($this->path);
     $this->visible = $options['visible'] ?? true;
     $this->default = $options['default'] ?? false;
-    $this->title = $options['title'] ?? ucwords($this->path);
-  }
-
-  // Render this page including the specified context
-  public function render(RendererInterface $renderer, array $context = []): Response
-  {
-    return $renderer->render($this, $context);
   }
 }

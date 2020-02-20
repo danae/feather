@@ -1,88 +1,100 @@
 <?php
 namespace Feather;
 
-use InvalidArgumentException;
-use IteratorAggregate;
-use Traversable;
-
-class PageManager implements IteratorAggregate
+class PageManager implements \ArrayAccess, \IteratorAggregate
 {
+  // Constants
+  const ERROR_PAGE = '__error';
+  const NOT_FOUND_PAGE = '__notfound';
+
   // Variables
-  public $pages;
+  private $pages = [];
 
-  protected $defaultPage;
-  protected $errorPage;
-  protected $notFoundPage;
-
-  // Constructor
-  public function __construct()
+  // Array access
+  public function offsetExists($name)
   {
-    $this->pages = [];
-
-    $this->defaultPage = null;
-    $this->errorPage = null;
-    $this->notFoundPage = null;
+    return isset($this->pages[$name]);
   }
-
-  // Create a page
-  private function create(string $path, $page_or_options = null): Page
+  public function offsetGet($name)
   {
-    if ($page_or_options === null)
-      return new Page($path);
-    else if (is_array($page_or_options))
-      return new Page($path, $page_or_options);
-    else if (is_a($page_or_options, Page::class))
-      return $page_or_options;
-    else
-      throw new InvalidArgumentException('Second argument must either be an instance of ' . Page::class . ', an array containing page options or null');
+    return $this->pages[$name];
+  }
+  public function offsetSet($name, $value)
+  {
+    $this->pages[$name] = $value;
+  }
+  public function offsetUnset($name)
+  {
+    unset($this->pages[$name]);
   }
 
   // Add a page
-  public function add(string $path, $page_or_options = null): self
+  public function add(string $path, array $options = []): self
   {
-    // Create and add the page
-    $page = $this->create($path, $page_or_options);
-    $this->pages[$path] = $page;
+    // Create the default options
+    $options['path'] = $path;
+    $options['template'] = $options['template'] ?? implode('/', array_filter(explode('/', $path)));
+    $options['title'] = $options['title'] ?? ucwords($path);
+    $options['visible'] = $options['visible'] ?? true;
 
-    // Set the page as default if set
-    if ($page->default)
-      $this->defaultPage = $page;
+    // Create the page
+    $this[$path] = new Page($options);
 
-    // Return self for chainability
     return $this;
   }
 
-  // Remove a page
-  public function remove(string $pageName): self
+  // Get a page
+  public function get(string $path): ?Page
   {
-    // Remove the page
-    unset($this->pages[$pageName]);
+    return $this[$path];
+  }
 
-    // Return self for chainability
+  // Get the default page
+  public function getDefault(): Page
+  {
+    foreach ($this->pages as $page)
+      if ($page->default)
+        return $page;
+
+    return null;
+  }
+
+  // Remove a page
+  public function remove(string $path): self
+  {
+    unset($this[$path]);
     return $this;
   }
 
   // Add a page that serves as a general error handler
-  public function errorPage($path, $page_or_options = null): self
+  public function addErrorPage(array $options = []): self
   {
-    $this->errorPage = $this->create($path, $page_or_options);
-    return $this;
+    return $this->add(self::ERROR_PAGE, array_merge($options, ['visible' => false]));
+  }
+
+  // Get the error page
+  public function getErrorPage(): ?Page
+  {
+    return $this->get(self::ERROR_PAGE);
   }
 
   // Add a page that serves as a not found page
-  public function notFoundPage($path, $page_or_options = null): self
+  public function addNotFoundPage(array $options = []): self
   {
-    $this->notFoundPage = $this->create($path, $page_or_options);
-    return $this;
+    return $this->add(self::NOT_FOUND_PAGE, array_merge($options, ['visible' => false]));
+  }
+
+  // Get the not found page
+  public function getNotFoundPage(): ?Page
+  {
+    return $this->get(self::NOT_FOUND_PAGE);
   }
 
   // Return an iterator over the visible pages
-  public function getIterator(): Traversable
+  public function getIterator(): \Traversable
   {
-    foreach ($this->pages as $path => $page)
-    {
+    foreach ($this->pages as $page)
       if ($page->visible)
-        yield $path => $page;
-    }
+        yield $page;
   }
 }

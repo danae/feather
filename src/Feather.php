@@ -1,93 +1,108 @@
 <?php
 namespace Feather;
 
-use ArrayAccess;
 use DI\ContainerBuilder;
-use Feather\Renderer\{RendererInterface, TwigRenderer};
+use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Twig\Environment as TwigEnvironment;
+use Twig\TwigFunction;
 use Twig\Loader\FilesystemLoader as TwigFilesystemLoader;
 use Twig\Loader\LoaderInterface as TwigLoaderInterface;
 
 use function DI\{autowire, get};
 
-class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
+class Feather implements HttpKernelInterface
 {
   // Variables
   private $container;
 
   // Constructor
-  public function __construct(array $values = [])
+  public function __construct(array $options = [])
   {
     // Create a container builder
     $builder = new ContainerBuilder();
 
-    // Add default definitions
+    // Add options
+    $builder->addDefinitions($options);
+
+    // Add service definitions
     $builder->addDefinitions([
       // Variables
-      'document_root' => function() {
+      'base_path' => function() {
         $dir = dirname($_SERVER['PHP_SELF']);
         return ($dir !== '/' ? $dir : '');
+      },
+
+      // Twig extensions
+      'twig.base_path' => function(ContainerInterface $c) {
+        return new TwigFunction('base_path', function() use ($c) {
+          return $c->get('base_path');
+        });
+      },
+      'twig.base_path_for' => function(ContainerInterface $c) {
+        return new TwigFunction('base_path_for', function(Page $page) use ($c) {
+          return $c->get('base_path') . '/' . $page->path;
+        });
       },
 
       // Twig services
       TwigLoaderInterface::class => autowire(TwigFilesystemLoader::class)
         ->constructorParameter('paths', 'templates'),
       TwigEnvironment::class => autowire()
-        ->constructorParameter('options', ['autoescape' => false]),
+        ->constructorParameter('options', ['autoescape' => false])
+        ->method('addFunction', get('twig.base_path'))
+        ->method('addFunction', get('twig.base_path_for')),
 
       // Feather services
-      PageManager::class => $this,
-      RendererInterface::class => autowire(TwigRenderer::class),
+      PageManager::class => autowire(),
 
       // Convenient names to access the services
       'pages' => get(PageManager::class),
-      'renderer' => get(RendererInterface::class),
 
       // Context
       'context' => []
     ]);
 
-    // Add definitions from constructor
-    $builder->addDefinitions($values);
-
     // Create the container
     $this->container = $builder->build();
   }
 
-  // Array access methods
-  public function offsetExists($offset)
+  // Property overloading for easy container access
+  public function __isset($name)
   {
     return $this->container->has($offset);
   }
-  public function offsetGet($offset)
+  public function __get($name)
   {
-    return $this->container->get($offset);
+    return $this->container->get($name);
   }
-  public function offsetSet($offset, $value)
+  public function __set($name, $value)
   {
-    $this->container->set($offset, $value);
-  }
-  public function offsetUnset($offset)
-  {
-    throw new \LogicException(Container::class . " does not support unsetting keys");
+    $this->container->set($name, $value);
   }
 
-  // Render a page including the specified context
-  private function render(Page $page)
+  // Return a response with the rendered content of a page
+  private function render(Page $page, array $context = [])
   {
     // Add the container to the context
-    $variables = array_merge($this['context'], [
-      'document_root' => $this['document_root'],
-      'pages' => $this['pages']->pages, // Use the array for convenient access
-      'renderer' => $this['renderer']
-    ]);
+    $context['pages'] = $this->container->get(PageManager::class);
+    $context['page'] = $page;
 
-    // Render the page using the renderer
-    return $this[RendererInterface::class]->render($page, $variables);
+    $context = array_merge($this->context, $context);
+
+    // Render the page using the Twig environment
+    try
+    {
+      return new Response($this->container->get(TwigEnvironment::class)->render($page->template . ".twig", $context));
+    }
+    catch (TwigLoaderError $ex)
+    {
+      throw new NotFoundHttpException($ex->getMessage(), $ex);
+    }
   }
 
   // Handle a request
@@ -99,7 +114,7 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
       $path = implode('/', array_filter(explode('/', $request->getPathInfo())));
 
       // Get the page or use the default page if the path is empty
-      $page = $path ? $this->pages[$path] : $this->defaultPage;
+      $page = $path ? $this->container->get(PageManager::class)->get($path) : $this->container->get(PageManager::class)->getDefault();
       if ($page === null)
         throw new NotFoundHttpException($path);
 
@@ -109,21 +124,20 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
     catch (NotFoundHttpException $ex)
     {
       // Check if we have a 404 page
-      if ($this->notFoundPage !== null)
-        return $this->render($this->notFoundPage);
+      if (($notFoundPage = $this->container->get(PageManager::class)->getNotFoundPage()) !== null)
+        return $this->render($notFoundPage, ['error' => $ex->getMessage()]);
+      elseif ($catch)
+        return new Response("A not found error occurred while processing your request: '{$ex->getMessage()}'", 404);
       else
         throw $ex;
     }
     catch (Exception $ex)
     {
-      // Update the variables with the error message
-      $variables = array_merge($this->variables, [
-        'error' => $ex->getMessage()
-      ]);
-
       // Check if we have a 500 page
-      if ($this->errorPage !== null)
-        return $this->render($this->errorPage);
+      if (($errorPage = $this->container->get(PageManager::class)->getErrorPage()) !== null)
+        return $this->render($errorPage, ['error' => $ex->getMessage()]);
+      elseif ($catch)
+        return new Response("An internal error occurred while processing your request: '{$ex->getMessage()}'", 500);
       else
         throw $ex;
     }
@@ -137,7 +151,7 @@ class Feather extends PageManager implements HttpKernelInterface, ArrayAccess
       $request = Request::createFromGlobals();
 
     // Handle the request
-    $response = $this->handle($request, HttpKernelInterface::MASTER_REQUEST, true);
+    $response = $this->handle($request, HttpKernelInterface::MASTER_REQUEST);
     $response->send();
   }
 }
