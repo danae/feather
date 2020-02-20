@@ -27,6 +27,8 @@ class Feather implements HttpKernelInterface
     $builder = new ContainerBuilder();
 
     // Add options
+    $options['templates.paths'] = $options['templates.paths'] ?? 'templates';
+    $options['templates.format'] = $options['templates.format'] ?? '%s.twig';
     $builder->addDefinitions($options);
 
     // Add service definitions
@@ -51,7 +53,7 @@ class Feather implements HttpKernelInterface
 
       // Twig services
       TwigLoaderInterface::class => autowire(TwigFilesystemLoader::class)
-        ->constructorParameter('paths', 'templates'),
+        ->constructorParameter('paths', get('templates.paths')),
       TwigEnvironment::class => autowire()
         ->constructorParameter('options', ['autoescape' => false])
         ->method('addFunction', get('twig.base_path'))
@@ -97,7 +99,7 @@ class Feather implements HttpKernelInterface
     // Render the page using the Twig environment
     try
     {
-      return new Response($this->container->get(TwigEnvironment::class)->render($page->template . ".twig", $context));
+      return new Response($this->container->get(TwigEnvironment::class)->render(sprintf($this->container->get('templates.format'), $page->template), $context));
     }
     catch (TwigLoaderError $ex)
     {
