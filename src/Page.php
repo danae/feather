@@ -8,6 +8,7 @@ class Page
   public $template;
   public $title;
   public $visible;
+  public $default;
 
   // Constructor
   public function __construct(array $options = [])
