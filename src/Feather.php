@@ -1,5 +1,5 @@
 <?php
-namespace Feather;
+namespace Danae\Feather;
 
 use DI\ContainerBuilder;
 use InvalidArgumentException;
@@ -20,6 +20,7 @@ class Feather implements HttpKernelInterface
 {
   // Variables
   private $container;
+
 
   // Constructor
   public function __construct(array $options = [])

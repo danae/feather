@@ -1,5 +1,5 @@
 <?php
-namespace Feather;
+namespace Danae\Feather;
 
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;

@@ -1,5 +1,5 @@
 <?php
-namespace Feather;
+namespace Danae\Feather;
 
 class Page
 {
