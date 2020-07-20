@@ -3,7 +3,7 @@
   "description": "Simple HTTP kernel for Twig templates",
   "type": "library",
   "keywords": ["twig", "http", "kernel"],
-  "license": "GPL-3.0+",
+  "license": "GPL-3.0-or-later",
   "authors": [
     {
       "name": "Danae Dekker",
