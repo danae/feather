@@ -1,7 +1,11 @@
 <?php
 namespace Danae\Feather;
 
-class PageManager implements \ArrayAccess, \IteratorAggregate
+use ArrayAccess;
+use IteratorAggregate;
+use Traversable;
+
+class PageManager implements ArrayAccess, IteratorAggregate
 {
   // Constants
   const ERROR_PAGE = '__error';
@@ -17,7 +21,8 @@ class PageManager implements \ArrayAccess, \IteratorAggregate
   }
   public function offsetGet($name)
   {
-    return $this->pages[$name];
+    // Added null coalesce to avoid notice errors
+    return $this->pages[$name] ?? null;
   }
   public function offsetSet($name, $value)
   {
@@ -69,7 +74,7 @@ class PageManager implements \ArrayAccess, \IteratorAggregate
   // Add a page that serves as a general error handler
   public function addErrorPage(array $options = []): self
   {
-    return $this->add(self::ERROR_PAGE, array_merge($options, ['visible' => false]));
+    return $this->add(self::ERROR_PAGE, array_merge(['title' => 'Internal error', 'visible' => false], $options));
   }
 
   // Get the error page
@@ -81,7 +86,7 @@ class PageManager implements \ArrayAccess, \IteratorAggregate
   // Add a page that serves as a not found page
   public function addNotFoundPage(array $options = []): self
   {
-    return $this->add(self::NOT_FOUND_PAGE, array_merge($options, ['visible' => false]));
+    return $this->add(self::NOT_FOUND_PAGE, array_merge(['title' => 'Page not found', 'visible' => false], $options));
   }
 
   // Get the not found page

@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Throwable;
 use Twig\Environment as TwigEnvironment;
 use Twig\Loader\FilesystemLoader as TwigFilesystemLoader;
 use Twig\Loader\LoaderInterface as TwigLoaderInterface;
@@ -80,7 +81,7 @@ class Feather implements HttpKernelInterface
   // Return the base path
   public function getBasePath(): string
   {
-    return $this->get('base_path');
+    return $this->base_path;
   }
 
   // Return the base path for a page
@@ -129,6 +130,36 @@ class Feather implements HttpKernelInterface
     }
   }
 
+  // Handle a not found error
+  private function handleNotFound(Throwable $ex, $catch = true): Response
+  {
+    // If a not found page is present, then render that with the error
+    if (($notFoundPage = $this->pages->getNotFoundPage()) !== null)
+      return $this->render($notFoundPage, ['error' => $ex->getMessage()]);
+
+    // If the error should be caught, then return a plain text response
+    if ($catch)
+      return new Response("A not found error occurred while processing your request: '{$ex->getMessage()}'", 404);
+
+    // Otherwise rethrow the error
+    throw $ex;
+  }
+
+  // Handle an error
+  private function handleError(Throwable $ex, $catch = true): Response
+  {
+    // If an error page is present, then render that with the error
+    if (($errorPage = $this->pages->getErrorPage()) !== null)
+      return $this->render($errorPage, ['error' => $ex->getMessage()]);
+
+    // If the error should be caught, then return a plain text response
+    if ($catch)
+      return new Response("An internal error occurred while processing your request: '{$ex->getMessage()}'", 500);
+
+    // Otherwise rethrow the error
+    throw $ex;
+  }
+
   // Handle a request
   public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true): Response
   {
@@ -147,23 +178,11 @@ class Feather implements HttpKernelInterface
     }
     catch (NotFoundHttpException $ex)
     {
-      // Check if we have a 404 page
-      if (($notFoundPage = $this->pages->getNotFoundPage()) !== null)
-        return $this->render($notFoundPage, ['error' => $ex->getMessage()]);
-      elseif ($catch)
-        return new Response("A not found error occurred while processing your request: '{$ex->getMessage()}'", 404);
-      else
-        throw $ex;
+      return $this->handleNotFound($ex, $catch);
     }
-    catch (Exception $ex)
+    catch (Throwable $ex)
     {
-      // Check if we have a 500 page
-      if (($errorPage = $this->pages->getErrorPage()) !== null)
-        return $this->render($errorPage, ['error' => $ex->getMessage()]);
-      elseif ($catch)
-        return new Response("An internal error occurred while processing your request: '{$ex->getMessage()}'", 500);
-      else
-        throw $ex;
+      return $this->handleError($ex, $catch);
     }
   }
 
